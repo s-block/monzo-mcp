@@ -1,0 +1,117 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "monzo-mcp"
+version = "0.1.0"
+description = "An authenticated MCP server for the Monzo Developer API"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [{ name = "Joshua Rowe" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
+dependencies = [
+    "aiomonzo>=0.1.0,<0.2",
+    "cryptography>=49,<50",
+    "httpx>=0.28.1,<1",
+    "mcp>=1.28.1,<2",
+    "pydantic>=2.12,<3",
+    "starlette>=1.3.1,<2",
+    "uvicorn>=0.51,<1",
+]
+
+[project.urls]
+Homepage = "https://github.com/s-block/monzo-mcp"
+Documentation = "https://github.com/s-block/monzo-mcp/blob/main/docs/README.md"
+Repository = "https://github.com/s-block/monzo-mcp.git"
+Issues = "https://github.com/s-block/monzo-mcp/issues"
+Changelog = "https://github.com/s-block/monzo-mcp/blob/main/CHANGELOG.md"
+Security = "https://github.com/s-block/monzo-mcp/security/policy"
+
+[project.scripts]
+monzo-mcp = "monzo_mcp.cli:main"
+
+[dependency-groups]
+dev = [
+    "coverage>=7.10",
+    "detect-secrets>=1.5,<2",
+    "mypy>=1.18",
+    "pre-commit>=4.3",
+    "pytest>=8.4",
+    "pytest-asyncio>=1.2",
+    "ruff>=0.13",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/monzo_mcp"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/monzo_mcp",
+    "docs",
+    ".env.example",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md",
+    "SECURITY.md",
+]
+
+[tool.uv]
+package = true
+exclude-newer = "7 days"
+exclude-newer-package = { aiomonzo = "2026-07-26T14:00:00Z" }
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "ASYNC",
+    "B",
+    "C4",
+    "E",
+    "F",
+    "I",
+    "N",
+    "RUF",
+    "S",
+    "SIM",
+    "TCH",
+    "UP",
+    "W",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S105", "S106"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src/monzo_mcp", "tests"]
+strict = true
+warn_unused_ignores = true
+show_error_codes = true
+pretty = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-config",
+    "--strict-markers",
+    "--import-mode=importlib",
+]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

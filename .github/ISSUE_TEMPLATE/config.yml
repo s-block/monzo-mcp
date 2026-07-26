@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/s-block/monzo-mcp/security/advisories/new
+    about: Report vulnerabilities privately without exposing sensitive details.
+  - name: Documentation
+    url: https://github.com/s-block/monzo-mcp/blob/main/docs/README.md
+    about: Review setup, configuration, security, and troubleshooting guidance.

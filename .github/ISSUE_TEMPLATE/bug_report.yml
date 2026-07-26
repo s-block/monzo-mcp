@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a reproducible problem using synthetic data
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include credentials, account details, real transactions, or
+        screenshots of financial information. Report security vulnerabilities
+        using the private security link instead.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety checks
+      options:
+        - label: I have removed credentials and real financial data.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
+        - label: I searched existing issues for the same problem.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Provide the image tag, digest, release, or commit SHA.
+      placeholder: sha-0123456789abcdef
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Credential mode
+      options:
+        - Local
+        - Broker
+        - Not applicable
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide safe steps using synthetic identifiers and data.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS, architecture, Docker version, Python version, and MCP client where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs
+      description: Remove authorization headers, tokens, identifiers, and financial data.
+      render: shell
