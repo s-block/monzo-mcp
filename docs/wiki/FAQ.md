@@ -75,7 +75,7 @@ returning refreshed credentials through MCP protocol messages and avoids
 placing provider tokens in model-visible inputs.
 
 An application that already owns a usable token can implement an
-`AccessTokenProvider` directly when using the Python client, but the packaged
+`AccessTokenProvider` directly when using `aiomonzo`, but the packaged
 multi-user server uses the explicit broker contract.
 
 ## Why is local mode the default?
@@ -117,12 +117,12 @@ in-app verification before requesting older history.
 
 MCP results are deliberately data-minimized. Bank details, owner records,
 counterparty bank details, precise merchant locations, raw metadata, and
-unknown provider fields are excluded. The lower-level Python client exposes
+unknown provider fields are excluded. The lower-level `aiomonzo` client exposes
 typed provider models for trusted application code.
 
 ## Does the server support webhooks?
 
-The Python client supports webhook API operations. The MCP server does not
+The `aiomonzo` client supports webhook API operations. The MCP server does not
 expose webhook tools or run a webhook listener.
 
 ## Is this an official Monzo product?

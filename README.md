@@ -1,13 +1,14 @@
 # monzo-mcp
 
 [![CI](https://github.com/s-block/monzo-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/s-block/monzo-mcp/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/s-block/monzo-mcp/blob/main/LICENSE)
 [![Python 3.12–3.14](https://img.shields.io/badge/python-3.12%E2%80%933.14-blue.svg)](https://www.python.org/)
 
 `monzo-mcp` is an authenticated
-[Model Context Protocol](https://modelcontextprotocol.io/) server and fully
-asynchronous Python client for the
-[Monzo Developer API](https://docs.monzo.com/).
+[Model Context Protocol](https://modelcontextprotocol.io/) server for the
+[Monzo Developer API](https://docs.monzo.com/). It uses the separately
+distributed [`aiomonzo`](https://github.com/s-block/aiomonzo) package for its
+fully asynchronous, typed Monzo integration.
 
 It exposes data-minimized Monzo account, balance, pot, and transaction tools over
 native Streamable HTTP. Financial writes are disabled by default. Monzo access
@@ -25,6 +26,8 @@ The same Docker image supports two credential ownership models:
 > This project is alpha software that can access sensitive financial data.
 > Start with read-only tools, use a dedicated private deployment, and review the
 > security model before connecting it to an MCP client.
+
+<!-- Separate the GitHub admonitions for standards-compliant Markdown rendering. -->
 
 > [!IMPORTANT]
 > Monzo states that its Developer API is not suitable for general public
@@ -48,7 +51,7 @@ Monzo is a trademark of its respective owner.
 - [Security model](#security-model)
 - [Operations](#operations)
 - [Troubleshooting](#troubleshooting)
-- [Async Python client](#async-python-client)
+- [Upstream Python client](#upstream-python-client)
 - [Limitations](#limitations)
 - [Development](#development)
 - [Contributing and security reports](#contributing-and-security-reports)
@@ -145,21 +148,22 @@ Python development requires Python 3.12 or newer and
 
 ## Documentation
 
-The [documentation hub](docs/README.md) provides task-oriented guides in
+The [documentation hub](https://github.com/s-block/monzo-mcp/blob/main/docs/README.md)
+provides task-oriented guides in
 addition to this README:
 
 | Guide | Covers |
 | --- | --- |
-| [Getting started](docs/wiki/Getting-Started.md) | Choosing a mode, building the image, and connecting an MCP client |
-| [Standalone local mode](docs/wiki/Standalone-Local-Mode.md) | Single-tenant OAuth, encrypted storage, login, and logout |
-| [External broker mode](docs/wiki/External-Broker-Mode.md) | Stateless multi-user deployment and the broker contract |
-| [Configuration](docs/wiki/Configuration.md) | Environment variables, CLI flags, validation, and precedence |
-| [Tools and data](docs/wiki/Tools-and-Data.md) | Tool schemas, pagination, money values, and data minimization |
-| [Security](docs/wiki/Security.md) | Trust boundaries, hardening, credential handling, and limitations |
-| [Operations](docs/wiki/Operations.md) | Health, backup, rotation, upgrades, scaling, and recovery |
-| [Troubleshooting](docs/wiki/Troubleshooting.md) | Common startup, OAuth, HTTP, broker, and Monzo failures |
-| [Python client](docs/wiki/Python-Client.md) | Using the typed async Monzo client independently of MCP |
-| [Development](docs/wiki/Development.md) | Repository layout, checks, contribution workflow, and releases |
+| [Getting started](https://github.com/s-block/monzo-mcp/wiki/Getting-Started) | Choosing a mode, building the image, and connecting an MCP client |
+| [Standalone local mode](https://github.com/s-block/monzo-mcp/wiki/Standalone-Local-Mode) | Single-tenant OAuth, encrypted storage, login, and logout |
+| [External broker mode](https://github.com/s-block/monzo-mcp/wiki/External-Broker-Mode) | Stateless multi-user deployment and the broker contract |
+| [Configuration](https://github.com/s-block/monzo-mcp/wiki/Configuration) | Environment variables, CLI flags, validation, and precedence |
+| [Tools and data](https://github.com/s-block/monzo-mcp/wiki/Tools-and-Data) | Tool schemas, pagination, money values, and data minimization |
+| [Security](https://github.com/s-block/monzo-mcp/wiki/Security) | Trust boundaries, hardening, credential handling, and limitations |
+| [Operations](https://github.com/s-block/monzo-mcp/wiki/Operations) | Health, backup, rotation, upgrades, scaling, and recovery |
+| [Troubleshooting](https://github.com/s-block/monzo-mcp/wiki/Troubleshooting) | Common startup, OAuth, HTTP, broker, and Monzo failures |
+| [Python client](https://github.com/s-block/monzo-mcp/wiki/Python-Client) | Using the separate `aiomonzo` package independently of MCP |
+| [Development](https://github.com/s-block/monzo-mcp/wiki/Development) | Repository layout, checks, contribution workflow, and releases |
 
 The same pages are published in the repository's
 [GitHub Wiki](https://github.com/s-block/monzo-mcp/wiki).
@@ -472,6 +476,8 @@ environment variables.
 | `MONZO_MCP_HTTP_PORT` | `8000` | HTTP listen port |
 | `MONZO_MCP_HTTP_ALLOWED_HOSTS` | Loopback defaults only | Comma-separated exact `Host` values; required for container binds |
 | `MONZO_MCP_HTTP_ALLOWED_ORIGINS` | Empty | Comma-separated exact browser origins |
+| `MONZO_MCP_HTTP_MAX_REQUEST_BODY_BYTES` | `1048576` | Maximum authenticated request body; allowed range is 1024–16777216 bytes |
+| `MONZO_MCP_HTTP_MAX_CONCURRENT_REQUESTS` | `100` | Maximum concurrent Uvicorn connections/tasks; allowed range is 1–10000 |
 
 The endpoint bearer must contain between 32 and 8192 bytes. Secret files must be
 regular, non-symlink files inaccessible to group and other users.
@@ -496,8 +502,9 @@ prevents accidental implicit switching to multi-user behavior.
 
 Local credential paths are ignored in explicit broker mode.
 
-See [.env.example](.env.example) for a commented configuration template. The
-Docker image entrypoint is `monzo-mcp`, and its default command is `serve`.
+See the
+[commented environment template](https://github.com/s-block/monzo-mcp/blob/main/.env.example).
+The Docker image entrypoint is `monzo-mcp`, and its default command is `serve`.
 Run `monzo-mcp --help` or `monzo-mcp <command> --help` for CLI options.
 
 ## Security model
@@ -563,11 +570,18 @@ remote access:
 - terminate TLS at a trusted reverse proxy;
 - restrict ingress to intended MCP clients;
 - configure exact allowed hosts and origins;
+- retain the application's request-body and concurrency limits;
+- enforce per-client rate, connection, and idle-time limits at trusted ingress;
 - rotate the endpoint bearer through a secret store;
 - disable proxy-header trust unless deliberately configured outside this image;
 - do not include credentials in URLs; and
 - prevent sensitive tool results from entering unnecessary model context,
   logs, traces, or chat retention.
+
+HTTP access logs remain disabled. Sanitized `security_event=...` warnings cover
+endpoint authentication, transport policy, request-size, broker, Monzo
+authentication, and rate-limit failures without recording credentials, bodies,
+tool inputs, or financial results.
 
 The static endpoint bearer is not a full MCP OAuth authorization-server
 implementation.
@@ -680,15 +694,21 @@ Verify that broker mode is explicit, the broker URL is reachable, and the
 trusted host sends exactly one correctly named delegation header. Ensure the
 delegation is unexpired and bound to the intended user, server, and audience.
 
-## Async Python client
+## Upstream Python client
 
-The lower-level package can be used independently of MCP after installing the
-project into a Python environment.
+The lower-level Monzo API integration is published separately as
+[`aiomonzo`](https://pypi.org/project/aiomonzo/) and is installed from PyPI as
+a runtime dependency. Applications that do not need MCP should depend on that
+package directly:
+
+```bash
+uv add aiomonzo
+```
 
 For short-lived local development with a Monzo API Playground token:
 
 ```python
-from monzo_mcp.client import MonzoClient
+from aiomonzo import MonzoClient
 
 
 async def read_balance(playground_token: str) -> int:
@@ -711,6 +731,8 @@ the Monzo client owns neither.
 
 All network operations are asynchronous, use bounded timeouts, preserve
 cancellation, and return typed models or typed, secret-safe exceptions.
+See the [`aiomonzo` documentation](https://github.com/s-block/aiomonzo/wiki)
+for its complete API and OAuth guidance.
 
 ## Limitations
 
@@ -746,7 +768,8 @@ make check
 ```
 
 This checks Ruff formatting, Ruff linting including security rules, strict mypy,
-all tests, and source/wheel builds.
+public-PyPI-only lockfile sources, reviewed-baseline secret detection, all
+tests, and source/wheel builds.
 
 Run the container gate:
 
@@ -763,6 +786,7 @@ Useful targets:
 ```bash
 make help
 make format
+make docs-check
 make type-check
 make test
 make test-cov
@@ -777,7 +801,6 @@ GitHub artifact attestation.
 ### Project layout
 
 ```text
-src/monzo_mcp/client/    Async Monzo client, OAuth, models, and transport
 src/monzo_mcp/mcp/       MCP settings, provider modes, server, and tools
 src/monzo_mcp/credentials.py
                          Encrypted local credential persistence
@@ -799,10 +822,12 @@ Issues and pull requests are welcome. Before submitting a change:
 
 Do not include Monzo tokens, OAuth secrets, endpoint bearers, transaction data,
 or other personal financial information in issues, logs, test fixtures, or
-screenshots. For a security vulnerability, prefer the repository's private
-security-reporting channel when available rather than opening a public issue
-with exploitable details.
+screenshots. For a security vulnerability, follow the
+[security policy](https://github.com/s-block/monzo-mcp/security/policy) and use
+[private vulnerability reporting](https://github.com/s-block/monzo-mcp/security/advisories/new)
+rather than opening a public issue with exploitable details.
 
 ## License
 
-Licensed under the [MIT License](LICENSE).
+Licensed under the
+[MIT License](https://github.com/s-block/monzo-mcp/blob/main/LICENSE).

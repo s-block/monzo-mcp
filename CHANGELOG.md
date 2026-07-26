@@ -4,7 +4,8 @@
 
 ### Added
 
-- Fully asynchronous, typed Monzo Developer API client.
+- PyPI-backed `aiomonzo` integration for fully asynchronous, typed Monzo API
+  access.
 - HTTP-only FastMCP Docker service with data-minimized read tools, endpoint
   bearer authentication, and exact Host/Origin validation.
 - Generic `AccessTokenProvider` boundary with encrypted local OAuth and
@@ -19,6 +20,12 @@
 - GHCR publishing for amd64 and arm64 images with SBOM and provenance
   attestations.
 - Dependency, source, workflow, Dockerfile, and container vulnerability checks.
+- Bounded fixed and streamed HTTP request bodies, Uvicorn concurrency, and
+  model-facing string and metadata inputs.
+- Sanitized security-event logging for authentication, transport, broker, and
+  provider failures.
+- CI-enforced secret and public-package-registry checks, a documented Markdown
+  policy, an actionable security policy, and complete public package metadata.
 
 ### Changed
 

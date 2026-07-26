@@ -33,8 +33,11 @@ docker compose up -d --force-recreate monzo-mcp
 ```
 
 The server intentionally disables HTTP access logs. Normal output is sparse.
-Never add debug logging that prints request headers, broker bodies, Monzo
-responses, or tool results.
+Sanitized `security_event=...` warnings identify authentication, transport
+policy, request-size, broker, Monzo-authentication, and rate-limit failures
+without recording the affected credential, body, tool input, or result. Alert
+on sustained or unexpected increases. Never add debug logging that prints
+request headers, broker bodies, Monzo responses, or tool results.
 
 ## Local credential status
 

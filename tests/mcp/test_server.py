@@ -136,6 +136,8 @@ def test_http_settings_are_secret_safe_and_require_exact_hosts() -> None:
 
     assert settings.host == _CONTAINER_BIND
     assert settings.allowed_hosts == ("monzo-mcp", "monzo-mcp:8000")
+    assert settings.max_request_body_bytes == 1_048_576
+    assert settings.max_concurrent_requests == 100
     assert _ENDPOINT_TOKEN not in repr(settings)
 
 
@@ -190,6 +192,53 @@ def test_http_settings_reject_unsafe_configuration(
             endpoint_token=endpoint_token,
             allowed_hosts=allowed_hosts,
             allowed_origins=allowed_origins,
+        )
+
+
+def test_http_settings_load_bounded_resource_controls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MONZO_MCP_HTTP_MAX_REQUEST_BODY_BYTES", "2097152")
+    monkeypatch.setenv("MONZO_MCP_HTTP_MAX_CONCURRENT_REQUESTS", "50")
+
+    settings = HttpServerSettings.from_environment(
+        host="127.0.0.1",
+        endpoint_token=_ENDPOINT_TOKEN,
+    )
+
+    assert settings.max_request_body_bytes == 2_097_152
+    assert settings.max_concurrent_requests == 50
+
+    monkeypatch.setenv("MONZO_MCP_HTTP_MAX_REQUEST_BODY_BYTES", "unbounded")
+    with pytest.raises(
+        ServerConfigurationError,
+        match="Invalid MCP HTTP server settings",
+    ):
+        HttpServerSettings.from_environment(
+            host="127.0.0.1",
+            endpoint_token=_ENDPOINT_TOKEN,
+        )
+
+
+@pytest.mark.parametrize(
+    ("max_request_body_bytes", "max_concurrent_requests"),
+    [
+        (1_023, 100),
+        (16_777_217, 100),
+        (1_048_576, 0),
+        (1_048_576, 10_001),
+    ],
+)
+def test_http_settings_reject_unbounded_resource_controls(
+    max_request_body_bytes: int,
+    max_concurrent_requests: int,
+) -> None:
+    with pytest.raises(ServerConfigurationError):
+        HttpServerSettings.from_environment(
+            host="127.0.0.1",
+            endpoint_token=_ENDPOINT_TOKEN,
+            max_request_body_bytes=max_request_body_bytes,
+            max_concurrent_requests=max_concurrent_requests,
         )
 
 

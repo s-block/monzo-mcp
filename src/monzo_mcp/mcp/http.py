@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import hmac
+import logging
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
     from starlette.requests import Request
     from starlette.responses import Response
-    from starlette.types import ASGIApp, Receive, Scope, Send
+    from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
     from monzo_mcp.mcp.context import AppContext
     from monzo_mcp.mcp.settings import (
@@ -39,6 +40,9 @@ if TYPE_CHECKING:
 AUTHORIZATION_HEADER_NAME = "Authorization"
 _AUTHORIZATION_HEADER_BYTES = AUTHORIZATION_HEADER_NAME.lower().encode()
 _BEARER_PREFIX = b"Bearer "
+_CONTENT_LENGTH_HEADER_BYTES = b"content-length"
+_BODY_METHODS = frozenset({"POST", "PUT", "PATCH"})
+_SECURITY_LOGGER = logging.getLogger("monzo_mcp.security")
 
 
 class EndpointBearerMiddleware:
@@ -69,6 +73,7 @@ class EndpointBearerMiddleware:
                 self._expected_token,
             )
         if not valid:
+            _SECURITY_LOGGER.warning("security_event=endpoint_authentication_failed")
             response = PlainTextResponse("Unauthorized", status_code=401)
             await response(scope, receive, send)
             return
@@ -79,6 +84,112 @@ class EndpointBearerMiddleware:
             if name.lower() != _AUTHORIZATION_HEADER_BYTES
         )
         await self._app(inner_scope, receive, send)
+
+
+class RequestBodyLimitMiddleware:
+    """Reject authenticated request bodies before they can grow without bound."""
+
+    def __init__(self, app: ASGIApp, *, max_body_bytes: int) -> None:
+        self._app = app
+        self._max_body_bytes = max_body_bytes
+
+    async def __call__(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
+        if scope["type"] != "http" or scope.get("method") not in _BODY_METHODS:
+            await self._app(scope, receive, send)
+            return
+        try:
+            content_length = _content_length(scope)
+        except ValueError:
+            _SECURITY_LOGGER.warning("security_event=invalid_content_length")
+            response = PlainTextResponse("Invalid Content-Length", status_code=400)
+            await response(scope, receive, send)
+            return
+        if content_length is not None and content_length > self._max_body_bytes:
+            await self._reject_oversized(scope, receive, send)
+            return
+
+        body = bytearray()
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            if message["type"] != "http.request":
+                continue
+            body.extend(message.get("body", b""))
+            if len(body) > self._max_body_bytes:
+                await self._reject_oversized(scope, receive, send)
+                return
+            if not message.get("more_body", False):
+                break
+
+        replayed = False
+
+        async def replay_receive() -> Message:
+            nonlocal replayed
+            if not replayed:
+                replayed = True
+                return {
+                    "type": "http.request",
+                    "body": bytes(body),
+                    "more_body": False,
+                }
+            return await receive()
+
+        await self._app(scope, replay_receive, send)
+
+    async def _reject_oversized(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
+        _SECURITY_LOGGER.warning("security_event=request_body_too_large")
+        response = PlainTextResponse("Request body too large", status_code=413)
+        await response(scope, receive, send)
+
+
+class TransportSecurityEventMiddleware:
+    """Emit sanitized events when the MCP transport rejects a request."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self._app = app
+
+    async def __call__(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
+        async def observe_send(message: Message) -> None:
+            if message["type"] == "http.response.start" and message["status"] == 403:
+                _SECURITY_LOGGER.warning("security_event=transport_policy_rejected")
+            await send(message)
+
+        await self._app(scope, receive, observe_send)
+
+
+def _content_length(scope: Scope) -> int | None:
+    values = [
+        value
+        for name, value in scope.get("headers", ())
+        if name.lower() == _CONTENT_LENGTH_HEADER_BYTES
+    ]
+    if not values:
+        return None
+    if len(values) != 1:
+        raise ValueError
+    try:
+        decoded = values[0].decode("ascii")
+    except UnicodeDecodeError:
+        raise ValueError from None
+    if not decoded.isdecimal():
+        raise ValueError
+    return int(decoded)
 
 
 async def healthcheck(_request: Request) -> Response:
@@ -106,7 +217,12 @@ def create_http_application(
             Middleware(
                 EndpointBearerMiddleware,
                 expected_token=settings.endpoint_token.get_secret_value().encode(),
-            )
+            ),
+            Middleware(
+                RequestBodyLimitMiddleware,
+                max_body_bytes=settings.max_request_body_bytes,
+            ),
+            Middleware(TransportSecurityEventMiddleware),
         ],
         lifespan=lifespan,
     )
@@ -142,6 +258,8 @@ async def serve_http(
             access_log=False,
             proxy_headers=False,
             server_header=False,
+            limit_concurrency=http_settings.max_concurrent_requests,
+            backlog=http_settings.max_concurrent_requests,
         )
         await uvicorn.Server(config).serve()
 

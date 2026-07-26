@@ -15,6 +15,8 @@ files rather than environment variables or command-line arguments.
 | `MONZO_MCP_HTTP_PORT` | `8000` | Integer from 1 through 65535 |
 | `MONZO_MCP_HTTP_ALLOWED_HOSTS` | Loopback values only for a loopback bind | Comma-separated exact `Host` values |
 | `MONZO_MCP_HTTP_ALLOWED_ORIGINS` | Empty | Comma-separated exact browser origins |
+| `MONZO_MCP_HTTP_MAX_REQUEST_BODY_BYTES` | `1048576` | Integer from 1024 through 16777216 |
+| `MONZO_MCP_HTTP_MAX_CONCURRENT_REQUESTS` | `100` | Integer from 1 through 10000 |
 
 When binding to `0.0.0.0` or another non-loopback interface,
 `MONZO_MCP_HTTP_ALLOWED_HOSTS` is required. Wildcards, schemes, paths, and
@@ -33,6 +35,13 @@ MONZO_MCP_HTTP_ALLOWED_ORIGINS=https://mcp-client.example
 
 Non-browser MCP clients normally omit `Origin`; an empty allowlist is therefore
 the safe default.
+
+Authenticated request bodies larger than
+`MONZO_MCP_HTTP_MAX_REQUEST_BODY_BYTES` receive `413 Request Entity Too Large`.
+This applies when `Content-Length` is present and when clients stream a body
+without it. Uvicorn rejects excess concurrent connections/tasks according to
+`MONZO_MCP_HTTP_MAX_CONCURRENT_REQUESTS`. Keep both values bounded and add
+per-client rate, idle-time, and connection limits at trusted ingress.
 
 ## Local-mode environment variables
 

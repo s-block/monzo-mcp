@@ -7,17 +7,19 @@ from urllib.parse import parse_qs
 import httpx
 
 from monzo_mcp.mcp.settings import AccessTokenProviderMode
-from tests.client.helpers import (
+from tests.mcp.helpers import configured_server, connected_session
+from tests.mcp.monzo_responses import (
     ACCOUNT,
     BALANCE,
     EXPANDED_TRANSACTION,
     POT,
     TRANSACTION,
 )
-from tests.mcp.helpers import configured_server, connected_session
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
 
 async def test_read_tools_use_real_client_and_minimize_results(tmp_path: Path) -> None:
@@ -206,6 +208,14 @@ async def test_tool_validation_and_permission_errors_are_safe(
                 "monzo_list_transactions",
                 {"account_id": "acc_1", "limit": 101},
             )
+            oversized_account = await session.call_tool(
+                "monzo_get_balance",
+                {"account_id": "a" * 257},
+            )
+            oversized_cursor = await session.call_tool(
+                "monzo_list_transactions",
+                {"account_id": "acc_1", "since": "c" * 257},
+            )
             denied = await session.call_tool(
                 "monzo_get_balance",
                 {"account_id": "acc_1"},
@@ -214,6 +224,8 @@ async def test_tool_validation_and_permission_errors_are_safe(
         await factory.aclose()
 
     assert invalid.isError is True
+    assert oversized_account.isError is True
+    assert oversized_cursor.isError is True
     assert requests == 1
     assert denied.isError is True
     serialized = denied.model_dump_json()
@@ -257,6 +269,7 @@ async def test_verification_required_explains_recent_transaction_window(
 
 async def test_authentication_rate_limit_and_invalid_response_errors_are_safe(
     tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     responses = [
         httpx.Response(
@@ -306,6 +319,11 @@ async def test_authentication_rate_limit_and_invalid_response_errors_are_safe(
     assert "provider-message" not in rendered
     assert "not-json-sensitive" not in rendered
     assert responses == []
+    assert "security_event=monzo_authentication_failed" in caplog.messages
+    assert (
+        "security_event=monzo_rate_limited retry_after_supplied=True" in caplog.messages
+    )
+    assert "provider-message" not in caplog.text
 
 
 async def test_broker_mode_authentication_error_tells_client_to_reconnect(

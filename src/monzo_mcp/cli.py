@@ -13,14 +13,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Self
 from urllib.parse import parse_qs, urlsplit
 
-from pydantic import AnyHttpUrl, SecretStr, ValidationError
-
-from monzo_mcp.client import (
+from aiomonzo import (
     MonzoAuthenticationError,
     MonzoClient,
     MonzoClientError,
     OAuthClientConfig,
 )
+from pydantic import AnyHttpUrl, SecretStr, ValidationError
+
 from monzo_mcp.credentials import (
     ClientCredentialStore,
     CredentialError,
@@ -47,7 +47,8 @@ _DEFAULT_CALLBACK_TIMEOUT_SECONDS = 300.0
 _MAX_CALLBACK_HEADER_BYTES = 8192
 _MAX_SECRET_BYTES = 8192
 _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
-_EXPLICIT_CONTAINER_BINDS = frozenset({"0.0.0.0", "::"})  # noqa: S104
+# These recognized container binds do not bypass endpoint or Host validation.
+_EXPLICIT_CONTAINER_BINDS = frozenset({"0.0.0.0", "::"})  # noqa: S104  # nosec B104
 
 
 class AuthCLIError(Exception):

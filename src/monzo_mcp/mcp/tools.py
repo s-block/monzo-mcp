@@ -2,19 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Awaitable, Callable  # noqa: TC003
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
-from mcp.server.elicitation import AcceptedElicitation
-from mcp.server.fastmcp import FastMCP  # noqa: TC002
-from mcp.server.fastmcp.exceptions import ToolError
-from mcp.shared.exceptions import McpError
-from mcp.types import ToolAnnotations
-from pydantic import Field, ValidationError
-from starlette.requests import Request
-
-from monzo_mcp.client import (
+from aiomonzo import (
     MonzoAuthenticationError,
     MonzoClient,
     MonzoClientError,
@@ -28,6 +21,14 @@ from monzo_mcp.client import (
     MonzoTimeoutError,
     MonzoTransportError,
 )
+from mcp.server.elicitation import AcceptedElicitation
+from mcp.server.fastmcp import FastMCP  # noqa: TC002
+from mcp.server.fastmcp.exceptions import ToolError
+from mcp.shared.exceptions import McpError
+from mcp.types import ToolAnnotations
+from pydantic import Field, ValidationError
+from starlette.requests import Request
+
 from monzo_mcp.mcp.broker import (
     CredentialBrokerAuthorizationError,
     CredentialBrokerError,
@@ -76,11 +77,18 @@ _DEFAULT_TRANSACTION_LOOKBACK = timedelta(days=30)
 _DEFAULT_TRANSACTION_LIMIT = 30
 _MONZO_RECENT_TRANSACTION_LOOKBACK_DAYS = 89
 _MONZO_VERIFICATION_REQUIRED_CODE = "forbidden.verification_required"
+_MAX_IDENTIFIER_LENGTH = 256
+_MAX_ACCOUNT_TYPE_LENGTH = 64
+_MAX_METADATA_ENTRIES = 32
+_MAX_METADATA_KEY_LENGTH = 64
+_MAX_METADATA_VALUE_LENGTH = 512
+_SECURITY_LOGGER = logging.getLogger("monzo_mcp.security")
 
 type Identifier = Annotated[
     str,
     Field(
         min_length=1,
+        max_length=_MAX_IDENTIFIER_LENGTH,
         description="Explicit Monzo identifier; the server never selects one.",
     ),
 ]
@@ -99,11 +107,20 @@ type DedupeIdentifier = Annotated[
     str,
     Field(
         min_length=1,
+        max_length=_MAX_IDENTIFIER_LENGTH,
         description=(
             "Stable unique ID for this intended transfer. Reuse it only when "
             "retrying the same transfer."
         ),
     ),
+]
+type MetadataKey = Annotated[
+    str,
+    Field(min_length=1, max_length=_MAX_METADATA_KEY_LENGTH),
+]
+type MetadataValue = Annotated[
+    str,
+    Field(max_length=_MAX_METADATA_VALUE_LENGTH),
 ]
 
 
@@ -141,9 +158,10 @@ def register_tools(
         account_type: Annotated[
             str | None,
             Field(
+                max_length=_MAX_ACCOUNT_TYPE_LENGTH,
                 description=(
                     "Optional Monzo account type such as uk_retail or uk_retail_joint."
-                )
+                ),
             ),
         ] = None,
     ) -> AccountsResult:
@@ -244,11 +262,12 @@ def register_tools(
         since: Annotated[
             str | None,
             Field(
+                max_length=_MAX_IDENTIFIER_LENGTH,
                 description=(
                     "Optional RFC3339 timestamp or transaction ID cursor. Omit to "
                     "default to a 30-day lookback. Use at most an 89-day lookback "
                     "unless the user has just completed Monzo in-app verification."
-                )
+                ),
             ),
         ] = None,
         before: Annotated[
@@ -383,9 +402,10 @@ def register_tools(
     async def annotate_transaction(
         transaction_id: Identifier,
         metadata: Annotated[
-            dict[str, str | None],
+            dict[MetadataKey, MetadataValue | None],
             Field(
                 min_length=1,
+                max_length=_MAX_METADATA_ENTRIES,
                 description="Metadata values to set; null removes an existing key.",
             ),
         ],
@@ -442,18 +462,27 @@ async def _execute[ResultT](
         ) as monzo:
             return await operation(monzo)
     except CredentialBrokerReauthenticationRequiredError:
+        _SECURITY_LOGGER.warning(
+            "security_event=credential_broker_reauthentication_required"
+        )
         raise ToolError(
             "Monzo authorization is required; reconnect Monzo in your MCP client"
         ) from None
     except CredentialBrokerAuthorizationError:
+        _SECURITY_LOGGER.warning(
+            "security_event=credential_broker_authorization_failed"
+        )
         raise ToolError("The MCP credential delegation was rejected") from None
     except CredentialBrokerUnavailableError:
+        _SECURITY_LOGGER.warning("security_event=credential_broker_unavailable")
         raise ToolError("The credential broker is temporarily unavailable") from None
     except CredentialBrokerError:
         raise ToolError("A usable Monzo credential is unavailable") from None
     except MonzoReauthenticationRequired:
+        _SECURITY_LOGGER.warning("security_event=monzo_reauthentication_required")
         raise ToolError(_reauthentication_message(context, rejected=False)) from None
     except MonzoAuthenticationError:
+        _SECURITY_LOGGER.warning("security_event=monzo_authentication_failed")
         raise ToolError(_reauthentication_message(context, rejected=True)) from None
     except MonzoPermissionError as error:
         if error.code == _MONZO_VERIFICATION_REQUIRED_CODE:
@@ -465,6 +494,10 @@ async def _execute[ResultT](
             ) from None
         raise ToolError("Monzo denied permission for this operation") from None
     except MonzoRateLimitError as error:
+        _SECURITY_LOGGER.warning(
+            "security_event=monzo_rate_limited retry_after_supplied=%s",
+            error.retry_after is not None,
+        )
         retry = (
             f" Retry after {error.retry_after:g} seconds."
             if error.retry_after is not None

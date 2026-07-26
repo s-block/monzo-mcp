@@ -7,10 +7,10 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import httpx
+from aiomonzo import AccessTokenProvider
 from mcp.shared.memory import create_connected_server_and_client_session
 from pydantic import SecretStr
 
-from monzo_mcp.client import AccessTokenProvider
 from monzo_mcp.mcp.context import AccessTokenProviderFactory, AppContext
 from monzo_mcp.mcp.server import create_server
 from monzo_mcp.mcp.settings import (

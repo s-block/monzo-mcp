@@ -6,8 +6,8 @@ from urllib.parse import parse_qs
 import httpx
 from mcp.types import ElicitResult
 
-from tests.client.helpers import POT, TRANSACTION
 from tests.mcp.helpers import configured_server, connected_session
+from tests.mcp.monzo_responses import POT, TRANSACTION
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -232,3 +232,51 @@ async def test_annotation_write_is_typed_and_data_minimized(tmp_path: Path) -> N
             "metadata[remove]": [""],
         }
     ]
+
+
+async def test_annotation_rejects_oversized_metadata_before_request(
+    tmp_path: Path,
+) -> None:
+    requests = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal requests
+        del request
+        requests += 1
+        return httpx.Response(500)
+
+    server, factory, _ = await configured_server(
+        tmp_path,
+        handler=handler,
+        enable_writes=True,
+    )
+    try:
+        async with connected_session(server) as session:
+            too_many = await session.call_tool(
+                "monzo_annotate_transaction",
+                {
+                    "transaction_id": "tx_1",
+                    "metadata": {f"key-{index}": "value" for index in range(33)},
+                },
+            )
+            oversized_key = await session.call_tool(
+                "monzo_annotate_transaction",
+                {
+                    "transaction_id": "tx_1",
+                    "metadata": {"k" * 65: "value"},
+                },
+            )
+            oversized_value = await session.call_tool(
+                "monzo_annotate_transaction",
+                {
+                    "transaction_id": "tx_1",
+                    "metadata": {"key": "v" * 513},
+                },
+            )
+    finally:
+        await factory.aclose()
+
+    assert too_many.isError is True
+    assert oversized_key.isError is True
+    assert oversized_value.isError is True
+    assert requests == 0

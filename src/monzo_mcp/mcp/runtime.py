@@ -7,8 +7,8 @@ from datetime import timedelta
 from typing import TYPE_CHECKING
 
 import httpx
+from aiomonzo import OAuthAccessTokenProvider
 
-from monzo_mcp.client.auth import OAuthAccessTokenProvider
 from monzo_mcp.credentials import (
     ClientCredentialStore,
     CredentialConfigurationError,

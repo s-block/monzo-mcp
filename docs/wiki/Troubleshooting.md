@@ -218,5 +218,5 @@ The safe default is one page of 30 items over the last 30 days. Set an explicit
 
 MCP results intentionally omit raw metadata, bank details, precise merchant
 locations, provider extras, and other fields that are not required for common
-assistant tasks. Use the lower-level Python client in trusted application code
-if a supported provider field is genuinely needed.
+assistant tasks. Use the lower-level `aiomonzo` client in trusted application
+code if a supported provider field is genuinely needed.

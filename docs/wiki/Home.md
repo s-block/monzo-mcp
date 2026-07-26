@@ -1,9 +1,10 @@
 # monzo-mcp
 
 `monzo-mcp` is an authenticated
-[Model Context Protocol](https://modelcontextprotocol.io/) server and fully
-asynchronous Python client for the
-[Monzo Developer API](https://docs.monzo.com/).
+[Model Context Protocol](https://modelcontextprotocol.io/) server for the
+[Monzo Developer API](https://docs.monzo.com/). It uses the separately
+distributed [`aiomonzo`](https://github.com/s-block/aiomonzo) package for its
+fully asynchronous, typed Monzo integration.
 
 It runs as a Docker service over native Streamable HTTP and supports two
 credential models:
@@ -27,7 +28,7 @@ Read [Getting Started](Getting-Started) to choose a mode and connect a client.
 - [Security](Security)
 - [Operations](Operations)
 - [Troubleshooting](Troubleshooting)
-- [Python Client](Python-Client)
+- [aiomonzo Python Client](Python-Client)
 - [Development](Development)
 - [FAQ](FAQ)
 

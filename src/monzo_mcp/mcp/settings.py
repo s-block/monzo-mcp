@@ -24,8 +24,13 @@ from monzo_mcp.private_files import (
 _DEFAULT_CREDENTIAL_DIR = Path("/credentials")
 _DEFAULT_KEY_FILE = Path("/run/secrets/monzo-mcp.key")
 _DEFAULT_ENDPOINT_TOKEN_FILE = Path("/run/secrets/monzo-mcp-endpoint-token")
-_DEFAULT_HTTP_HOST = "0.0.0.0"  # noqa: S104
+# The container bind still requires endpoint authentication and exact allowed hosts.
+_DEFAULT_HTTP_HOST = "0.0.0.0"  # noqa: S104  # nosec B104
 _DEFAULT_HTTP_PORT = 8000
+_DEFAULT_MAX_REQUEST_BODY_BYTES = 1_048_576
+_MAX_MAX_REQUEST_BODY_BYTES = 16_777_216
+_DEFAULT_MAX_CONCURRENT_REQUESTS = 100
+_MAX_MAX_CONCURRENT_REQUESTS = 10_000
 _DEFAULT_DELEGATION_HEADER_NAME = "X-MCP-Credential-Delegation"
 _MINIMUM_TOKEN_BYTES = 32
 _MAXIMUM_TOKEN_BYTES = 8192
@@ -147,6 +152,16 @@ class HttpServerSettings(BaseModel):
     endpoint_token: SecretStr = Field(repr=False)
     allowed_hosts: tuple[str, ...]
     allowed_origins: tuple[str, ...] = ()
+    max_request_body_bytes: int = Field(
+        default=_DEFAULT_MAX_REQUEST_BODY_BYTES,
+        ge=1_024,
+        le=_MAX_MAX_REQUEST_BODY_BYTES,
+    )
+    max_concurrent_requests: int = Field(
+        default=_DEFAULT_MAX_CONCURRENT_REQUESTS,
+        ge=1,
+        le=_MAX_MAX_CONCURRENT_REQUESTS,
+    )
 
     @field_validator("host")
     @classmethod
@@ -215,6 +230,8 @@ class HttpServerSettings(BaseModel):
         allowed_hosts: tuple[str, ...] | None = None,
         allowed_origins: tuple[str, ...] | None = None,
         endpoint_token: str | None = None,
+        max_request_body_bytes: int | None = None,
+        max_concurrent_requests: int | None = None,
     ) -> HttpServerSettings:
         """Load endpoint settings and read the required owner-only bearer token."""
         selected_host = host or os.environ.get(
@@ -249,6 +266,16 @@ class HttpServerSettings(BaseModel):
             if allowed_origins is not None
             else _environment_list("MONZO_MCP_HTTP_ALLOWED_ORIGINS")
         )
+        selected_max_request_body_bytes = _environment_integer(
+            "MONZO_MCP_HTTP_MAX_REQUEST_BODY_BYTES",
+            default=_DEFAULT_MAX_REQUEST_BODY_BYTES,
+            override=max_request_body_bytes,
+        )
+        selected_max_concurrent_requests = _environment_integer(
+            "MONZO_MCP_HTTP_MAX_CONCURRENT_REQUESTS",
+            default=_DEFAULT_MAX_CONCURRENT_REQUESTS,
+            override=max_concurrent_requests,
+        )
         try:
             selected_endpoint_token = (
                 endpoint_token
@@ -271,6 +298,8 @@ class HttpServerSettings(BaseModel):
                 endpoint_token=SecretStr(selected_endpoint_token),
                 allowed_hosts=selected_hosts,
                 allowed_origins=selected_origins,
+                max_request_body_bytes=selected_max_request_body_bytes,
+                max_concurrent_requests=selected_max_concurrent_requests,
             )
         except (PrivateTextFileError, ValidationError):
             raise ServerConfigurationError("Invalid MCP HTTP server settings") from None
@@ -405,6 +434,20 @@ def _environment_list(name: str) -> tuple[str, ...]:
     return tuple(
         item.strip() for item in os.environ.get(name, "").split(",") if item.strip()
     )
+
+
+def _environment_integer(
+    name: str,
+    *,
+    default: int,
+    override: int | None,
+) -> int:
+    if override is not None:
+        return override
+    try:
+        return int(os.environ.get(name, str(default)))
+    except ValueError:
+        raise ServerConfigurationError("Invalid MCP HTTP server settings") from None
 
 
 def _broker_configuration_supplied(

@@ -11,12 +11,6 @@ src/monzo_mcp/
 ├── cli.py                 Human auth commands and service entrypoint
 ├── credentials.py         Encrypted local credential bundle
 ├── private_files.py       Strict private-file validation
-├── client/
-│   ├── auth.py            AccessTokenProvider, TokenStore, OAuth rotation
-│   ├── client.py          Typed asynchronous Monzo API operations
-│   ├── models.py          Provider request/response models
-│   ├── transport.py       HTTP, retry, auth retry, and error mapping
-│   └── exceptions.py      Secret-safe typed exceptions
 └── mcp/
     ├── broker.py          Request-scoped broker provider
     ├── local.py           Process-owned local provider factory
@@ -29,6 +23,11 @@ src/monzo_mcp/
     └── tools.py           Tool definitions and safe error mapping
 ```
 
+The installed `aiomonzo` package supplies the typed asynchronous Monzo client,
+OAuth and provider protocols, transport, provider models, and client
+exceptions. This repository owns only the MCP-specific integration around that
+public dependency.
+
 ## Shared request path
 
 ```mermaid
@@ -37,7 +36,7 @@ flowchart LR
     Auth --> Host["Host and Origin validation"]
     Host --> Tool["Typed MCP tool"]
     Tool --> Provider["AccessTokenProvider"]
-    Provider --> MonzoClient["Async MonzoClient"]
+    Provider --> MonzoClient["aiomonzo MonzoClient"]
     MonzoClient --> API["Monzo Developer API"]
     API --> Minimize["Typed validation and data minimization"]
     Minimize --> Client

@@ -6,10 +6,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from aiomonzo import AccessTokenProvider, OAuthAccessTokenProvider
     from starlette.requests import Request
-
-    from monzo_mcp.client import AccessTokenProvider
-    from monzo_mcp.client.auth import OAuthAccessTokenProvider
 
 
 @dataclass(frozen=True, slots=True)

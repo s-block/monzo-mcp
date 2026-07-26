@@ -9,10 +9,10 @@ from mcp.server.fastmcp import Context
 
 if TYPE_CHECKING:
     import httpx
+    from aiomonzo import AccessTokenProvider
     from mcp.server.session import ServerSession
     from starlette.requests import Request
 
-    from monzo_mcp.client import AccessTokenProvider
     from monzo_mcp.mcp.settings import AccessTokenProviderMode
 
 

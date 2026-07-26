@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "monzo-mcp"
 version = "0.1.0"
-description = "An MCP server and fully async client for the Monzo Developer API"
+description = "An authenticated MCP server for the Monzo Developer API"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { file = "LICENSE" }
@@ -21,6 +21,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
+    "aiomonzo>=0.1.0,<0.2",
     "cryptography>=49,<50",
     "httpx>=0.28.1,<1",
     "mcp>=1.28.1,<2",
@@ -29,12 +30,21 @@ dependencies = [
     "uvicorn>=0.51,<1",
 ]
 
+[project.urls]
+Homepage = "https://github.com/s-block/monzo-mcp"
+Documentation = "https://github.com/s-block/monzo-mcp/wiki"
+Repository = "https://github.com/s-block/monzo-mcp.git"
+Issues = "https://github.com/s-block/monzo-mcp/issues"
+Changelog = "https://github.com/s-block/monzo-mcp/blob/main/CHANGELOG.md"
+Security = "https://github.com/s-block/monzo-mcp/security/policy"
+
 [project.scripts]
 monzo-mcp = "monzo_mcp.cli:main"
 
 [dependency-groups]
 dev = [
     "coverage>=7.10",
+    "detect-secrets>=1.5,<2",
     "mypy>=1.18",
     "pre-commit>=4.3",
     "pytest>=8.4",
@@ -48,13 +58,18 @@ packages = ["src/monzo_mcp"]
 [tool.hatch.build.targets.sdist]
 include = [
     "src/monzo_mcp",
+    "docs",
+    ".env.example",
+    "CHANGELOG.md",
     "LICENSE",
     "README.md",
+    "SECURITY.md",
 ]
 
 [tool.uv]
 package = true
 exclude-newer = "7 days"
+exclude-newer-package = { aiomonzo = "2026-07-26T14:00:00Z" }
 
 [tool.ruff]
 target-version = "py312"

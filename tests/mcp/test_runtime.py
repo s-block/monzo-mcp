@@ -9,14 +9,14 @@ from urllib.parse import parse_qs
 
 import httpx
 import pytest
-from pydantic import AnyHttpUrl, SecretStr
-
-from monzo_mcp.client import (
+from aiomonzo import (
     AccessTokenProvider,
     MonzoTokenStoreError,
     OAuthClientConfig,
     OAuthToken,
 )
+from pydantic import AnyHttpUrl, SecretStr
+
 from monzo_mcp.credentials import (
     ClientCredentialStore,
     CredentialConfigurationError,
@@ -28,7 +28,7 @@ from monzo_mcp.mcp.settings import (
     AccessTokenProviderMode,
     CredentialSettings,
 )
-from tests.client.helpers import TOKEN
+from tests.mcp.monzo_responses import TOKEN
 
 if TYPE_CHECKING:
     from pathlib import Path

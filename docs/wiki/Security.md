@@ -111,6 +111,9 @@ security requirements:
 - DNS rebinding protection;
 - exact `Host` allowlisting;
 - authentication on MCP requests;
+- a 1 MiB default request-body limit for fixed and streamed bodies;
+- a bounded default of 100 concurrent Uvicorn connections/tasks;
+- maximum lengths and collection sizes on model-facing tool inputs;
 - loopback-only host publication in examples;
 - no access log;
 - no server banner;
@@ -124,6 +127,23 @@ boundary.
 Allowed hosts are not an authorization mechanism. Origin validation protects
 browser scenarios but does not authenticate non-browser clients. Keep endpoint
 authentication and network policy in place.
+
+The application-level bounds protect one process. Trusted ingress must also
+enforce per-client request rates, connection counts, body size, and idle
+duration so one valid endpoint bearer cannot monopolize the service.
+
+## Security events
+
+HTTP access logs remain disabled to avoid capturing sensitive headers or paths.
+The service emits sanitized warning events for endpoint authentication failure,
+transport-policy rejection, oversized bodies, credential-broker authorization
+or availability failures, Monzo authentication failures, and upstream rate
+limits.
+
+Events contain a stable `security_event` name and, where relevant, a
+non-sensitive boolean. They never contain credentials, request bodies, tool
+arguments, provider responses, or financial results. Route these warnings to
+your normal monitoring system and alert on sustained or unexpected increases.
 
 ## Tool and data safety
 
@@ -168,6 +188,8 @@ Tool results do enter model context. Before connecting:
 - [ ] The port is published only on loopback or trusted ingress.
 - [ ] Allowed hosts exactly match real client host headers.
 - [ ] Browser origins are empty or narrowly allowlisted.
+- [ ] Request-body and concurrency limits remain bounded.
+- [ ] Trusted ingress enforces per-client rate, connection, and idle limits.
 - [ ] TLS protects traffic outside a private host/network.
 - [ ] Reverse proxies do not log authorization or delegation headers.
 - [ ] Local mode has exactly one process per credential bundle.
@@ -181,6 +203,8 @@ Tool results do enter model context. Before connecting:
 ## Reporting a vulnerability
 
 Do not place exploitable details, credentials, or real financial data in a
-public issue. Prefer GitHub's private vulnerability-reporting channel when it
-is available for the repository. Include a minimal synthetic reproduction,
-affected version, impact, and suggested remediation.
+public issue. Use the repository's
+[private vulnerability-reporting channel](https://github.com/s-block/monzo-mcp/security/advisories/new).
+Include a minimal synthetic reproduction, affected version, impact, and
+suggested remediation. The complete handling and safe-research policy is in
+[`SECURITY.md`](https://github.com/s-block/monzo-mcp/security/policy).

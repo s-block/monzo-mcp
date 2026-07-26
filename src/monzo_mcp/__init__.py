@@ -1,7 +1,3 @@
-"""Async, typed client building blocks for the Monzo Developer API."""
-
-from monzo_mcp.client import MonzoClient
-
-__all__ = ["MonzoClient"]
+"""Authenticated MCP server for the Monzo Developer API."""
 
 __version__ = "0.1.0"

@@ -1,4 +1,4 @@
-"""Stable redacted Monzo response fixtures."""
+"""Stable redacted Monzo response fixtures for MCP integration tests."""
 
 ACCOUNT = b"""{
   "id": "acc_1",
@@ -57,12 +57,6 @@ EXPANDED_TRANSACTION = b"""{
   "is_load": false,
   "settled": "2026-02-02T10:01:00Z",
   "category": "future_category"
-}"""
-
-WEBHOOK = b"""{
-  "id": "webhook_1",
-  "account_id": "acc_1",
-  "url": "https://example.test/monzo"
 }"""
 
 TOKEN = b"""{

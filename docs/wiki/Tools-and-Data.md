@@ -1,6 +1,6 @@
 # Tools and data
 
-The MCP surface is deliberately smaller than the lower-level Python client.
+The MCP surface is deliberately smaller than the lower-level `aiomonzo` client.
 OAuth, token management, logout, and webhooks are human or application
 operations and are not exposed to a model.
 

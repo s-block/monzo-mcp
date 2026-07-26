@@ -4,13 +4,14 @@ Keep this local banking integration typed, async, minimal, and secret-safe.
 
 ## Architecture
 
-- `src/monzo_mcp/client/` owns the fully async Monzo API client, OAuth, transport,
-  typed provider models, and public client exceptions.
+- The public `aiomonzo` PyPI package owns the fully async Monzo API client,
+  OAuth, transport, typed provider models, and public client exceptions.
 - `src/monzo_mcp/credentials.py` owns encrypted client-side credential storage.
 - `src/monzo_mcp/mcp/` owns data-minimized MCP models, tools, server composition,
   and lifecycle.
 - `src/monzo_mcp/cli.py` is the thin human auth and HTTP service entrypoint.
-- Mirror these boundaries under `tests/`.
+- Mirror repository-owned boundaries under `tests/`; upstream client behavior
+  belongs in `aiomonzo`.
 
 The MCP server is an authenticated Streamable HTTP service distributed as a
 Docker image. It has two deliberate `AccessTokenProvider` modes:
@@ -80,7 +81,8 @@ make docker-check
 ```
 
 `make check` runs formatting, linting (including Ruff security rules), strict
-typing, tests, and package builds. `make docker-check` builds the production
+typing, public-PyPI-only lockfile validation, reviewed-baseline secret
+detection, tests, and package builds. `make docker-check` builds the production
 image, exercises authenticated local and broker HTTP MCP handshakes under
 hardened runtime flags, and scans the Dockerfile and image.
 

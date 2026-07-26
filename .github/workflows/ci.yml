@@ -49,6 +49,9 @@ jobs:
       - name: Type-check
         run: uv run mypy src/monzo_mcp tests
 
+      - name: Scan tracked files for secrets
+        run: make secret-scan
+
       - name: Audit locked dependencies
         run: |
           uv --preview-features audit-command audit --locked --python-version 3.12

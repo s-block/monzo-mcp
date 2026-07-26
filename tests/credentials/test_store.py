@@ -7,10 +7,10 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 import pytest
+from aiomonzo import OAuthClientConfig, OAuthToken
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pydantic import AnyHttpUrl, SecretStr
 
-from monzo_mcp.client import OAuthClientConfig, OAuthToken
 from monzo_mcp.credentials import (
     ClientCredentialStore,
     CredentialConfigurationError,

@@ -9,10 +9,7 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Self
 
 import pytest
-from pydantic import AnyHttpUrl, SecretStr
-
-import monzo_mcp.cli as cli
-from monzo_mcp.client import (
+from aiomonzo import (
     AuthorizationRequest,
     MonzoConfigurationError,
     OAuthClientConfig,
@@ -20,6 +17,9 @@ from monzo_mcp.client import (
     TokenStore,
     validate_oauth_state,
 )
+from pydantic import AnyHttpUrl, SecretStr
+
+import monzo_mcp.cli as cli
 from monzo_mcp.credentials import ClientCredentialStore
 from monzo_mcp.mcp.settings import CredentialSettings
 

@@ -16,9 +16,10 @@ Start with the guide that matches what you are trying to do:
 | Understand tools, inputs, outputs, and limits | [Tools and data](wiki/Tools-and-Data.md) |
 | Understand request and credential flows | [Architecture](wiki/Architecture.md) |
 | Review the security model | [Security](wiki/Security.md) |
+| Report a vulnerability privately | [Security policy](../SECURITY.md) |
 | Operate, rotate, back up, and recover the service | [Operations](wiki/Operations.md) |
 | Diagnose a failure | [Troubleshooting](wiki/Troubleshooting.md) |
-| Use the async Python package without MCP | [Python client](wiki/Python-Client.md) |
+| Use the upstream async Python package without MCP | [Python client](wiki/Python-Client.md) |
 | Develop or contribute | [Development](wiki/Development.md) |
 | Read concise design answers | [FAQ](wiki/FAQ.md) |
 

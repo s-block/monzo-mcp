@@ -5,12 +5,11 @@ from __future__ import annotations
 from datetime import datetime  # noqa: TC003
 from typing import TYPE_CHECKING
 
+from aiomonzo import Merchant
 from pydantic import BaseModel, ConfigDict, Field
 
-from monzo_mcp.client import Merchant
-
 if TYPE_CHECKING:
-    from monzo_mcp.client import Account, Balance, Pot, Transaction
+    from aiomonzo import Account, Balance, Pot, Transaction
 
 
 class MCPModel(BaseModel):

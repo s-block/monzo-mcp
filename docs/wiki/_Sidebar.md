@@ -11,7 +11,7 @@
 - [Security](Security)
 - [Operations](Operations)
 - [Troubleshooting](Troubleshooting)
-- [Python Client](Python-Client)
+- [aiomonzo Python Client](Python-Client)
 - [Development](Development)
 - [FAQ](FAQ)
 

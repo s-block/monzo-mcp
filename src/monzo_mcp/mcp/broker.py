@@ -7,9 +7,8 @@ from hashlib import sha256
 from typing import TYPE_CHECKING, Literal
 
 import httpx
+from aiomonzo import AccessTokenProvider, MonzoClientError
 from pydantic import AwareDatetime, BaseModel, ConfigDict, SecretStr, ValidationError
-
-from monzo_mcp.client import AccessTokenProvider, MonzoClientError
 
 if TYPE_CHECKING:
     from starlette.requests import Request

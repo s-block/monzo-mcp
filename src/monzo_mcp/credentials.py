@@ -12,6 +12,7 @@ import tempfile
 from contextlib import suppress
 from typing import IO, TYPE_CHECKING, Literal, Self
 
+from aiomonzo import OAuthClientConfig, OAuthToken, TokenStore
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pydantic import (
@@ -24,8 +25,6 @@ from pydantic import (
     ValidationError,
     field_validator,
 )
-
-from monzo_mcp.client import OAuthClientConfig, OAuthToken, TokenStore
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -8,11 +8,11 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 import httpx
+from aiomonzo import OAuthClientConfig, OAuthToken
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from pydantic import AnyHttpUrl, SecretStr
 
-from monzo_mcp.client import OAuthClientConfig, OAuthToken
 from monzo_mcp.credentials import ClientCredentialStore
 from monzo_mcp.mcp.http import (
     AUTHORIZATION_HEADER_NAME,
@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable
     from pathlib import Path
 
+    import pytest
     from mcp.server.fastmcp import FastMCP
     from starlette.applications import Starlette
 
@@ -106,7 +107,9 @@ async def _connected_http_session(
         yield session
 
 
-async def test_http_transport_requires_exact_bearer_and_safe_origin() -> None:
+async def test_http_transport_requires_exact_bearer_and_safe_origin(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     async with _running_application(handler=lambda _request: httpx.Response(500)) as (
         _server,
         application,
@@ -159,6 +162,39 @@ async def test_http_transport_requires_exact_bearer_and_safe_origin() -> None:
     assert disallowed_origin.status_code == 403
     serialized = f"{missing.text}{wrong.text}{duplicate.text}{disallowed_origin.text}"
     assert _ENDPOINT_TOKEN not in serialized
+    assert caplog.messages.count("security_event=endpoint_authentication_failed") == 3
+    assert "security_event=transport_policy_rejected" in caplog.messages
+    assert _ENDPOINT_TOKEN not in caplog.text
+
+
+async def test_http_transport_rejects_fixed_and_streamed_oversized_bodies(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def streamed_body() -> AsyncIterator[bytes]:
+        yield b"x" * 700_000
+        yield b"x" * 700_000
+
+    async with _running_application(handler=lambda _request: httpx.Response(500)) as (
+        _server,
+        application,
+    ):
+        transport = httpx.ASGITransport(app=application)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url=_BASE_URL,
+            headers={
+                AUTHORIZATION_HEADER_NAME: f"Bearer {_ENDPOINT_TOKEN}",
+            },
+        ) as client:
+            fixed = await client.post("/mcp", content=b"x" * 1_048_577)
+            streamed = await client.post("/mcp", content=streamed_body())
+
+    assert fixed.status_code == 413
+    assert streamed.status_code == 413
+    assert fixed.text == "Request body too large"
+    assert streamed.text == "Request body too large"
+    assert caplog.messages.count("security_event=request_body_too_large") == 2
+    assert _ENDPOINT_TOKEN not in caplog.text
 
 
 async def test_http_transport_supports_concurrent_stateless_clients() -> None:
@@ -291,7 +327,9 @@ async def test_local_mode_needs_no_delegation_and_keeps_endpoint_bearer_separate
     assert monzo_requests == 1
 
 
-async def test_tool_call_without_delegation_fails_without_contacting_upstream() -> None:
+async def test_tool_call_without_delegation_fails_without_contacting_upstream(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     upstream_requests = 0
 
     def handler(_request: httpx.Request) -> httpx.Response:
@@ -310,3 +348,5 @@ async def test_tool_call_without_delegation_fails_without_contacting_upstream() 
 
     assert result.isError is True
     assert upstream_requests == 0
+    assert "security_event=credential_broker_authorization_failed" in caplog.messages
+    assert _DELEGATION not in caplog.text

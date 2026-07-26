@@ -1,4 +1,4 @@
-.PHONY: help install install-dev pre-commit-install format format-check lint type-check test test-cov build check docker-build docker-smoke docker-scan docker-check _docker-smoke _docker-scan clean
+.PHONY: help install install-dev pre-commit-install format format-check lint type-check lock-check secret-scan docs-check test test-cov build check docker-build docker-smoke docker-scan docker-check _docker-smoke _docker-scan clean
 .DEFAULT_GOAL := help
 
 IMAGE ?= monzo-mcp:local
@@ -29,6 +29,18 @@ lint: ## Run Ruff lint checks
 type-check: ## Type-check source and tests
 	uv run mypy src/monzo_mcp tests
 
+lock-check: ## Require every locked package registry to be public PyPI
+	@if rg --quiet --pcre2 'source = \{ registry = "(?!https://pypi\.org/simple")' uv.lock; then \
+		echo "uv.lock contains a non-PyPI package registry"; \
+		exit 1; \
+	fi
+
+secret-scan: ## Reject secrets not recorded as reviewed false positives
+	uv run pre-commit run detect-secrets --all-files
+
+docs-check: ## Check Markdown documentation
+	npx --yes markdownlint-cli2@0.19.0 "**/*.md" "#prompts/**"
+
 test: ## Run the test suite
 	uv run pytest -v
 
@@ -39,7 +51,7 @@ test-cov: ## Run tests with terminal coverage
 build: ## Build source and wheel distributions
 	uv build
 
-check: format-check lint type-check test build ## Run all required checks
+check: format-check lint type-check lock-check secret-scan test build ## Run all required checks
 
 docker-build: ## Build the hardened local MCP image
 	docker build --tag $(IMAGE) .
@@ -60,22 +72,22 @@ _docker-scan:
 		--exit-code 1 \
 		--severity HIGH,CRITICAL \
 		/Dockerfile
-	monzo_image_archive="$$(mktemp "$${TMPDIR:-/tmp}/monzo-mcp-image.XXXXXX.tar")"; \
-		trap 'rm -f "$$monzo_image_archive"' EXIT INT TERM; \
-		docker save --output "$$monzo_image_archive" $(IMAGE); \
+	monzo_image_scan_dir="$$(mktemp -d "$${TMPDIR:-/tmp}/monzo-mcp-image.XXXXXX")"; \
+		trap 'rm -f -- "$$monzo_image_scan_dir/image.tar"; rmdir "$$monzo_image_scan_dir"' EXIT INT TERM; \
+		docker save --output "$$monzo_image_scan_dir/image.tar" $(IMAGE); \
 		docker run --rm --read-only --cap-drop=ALL \
 			--security-opt=no-new-privileges \
 			--user "$$(id -u):$$(id -g)" \
 			--env HOME=/tmp \
 			--tmpfs /tmp:rw,noexec,nosuid,size=2147483648,mode=1777 \
-			--mount "type=bind,source=$$monzo_image_archive,target=/image.tar,readonly" \
+			--mount "type=bind,source=$$monzo_image_scan_dir,target=/scan,readonly" \
 			$(TRIVY_IMAGE) image \
 			--cache-dir /tmp/trivy-cache \
 			--exit-code 1 \
 			--ignore-unfixed \
 			--scanners vuln \
 			--severity HIGH,CRITICAL \
-			--input /image.tar
+			--input /scan/image.tar
 
 docker-scan: docker-build _docker-scan ## Scan Dockerfile and image for serious findings
 

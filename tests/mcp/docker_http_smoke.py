@@ -11,11 +11,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
+from aiomonzo import OAuthClientConfig, OAuthToken
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from pydantic import AnyHttpUrl, SecretStr
 
-from monzo_mcp.client import OAuthClientConfig, OAuthToken
 from monzo_mcp.credentials import ClientCredentialStore
 
 _ENDPOINT_TOKEN = "docker-smoke-local-endpoint-token-" * 2

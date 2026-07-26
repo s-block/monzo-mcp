@@ -134,11 +134,12 @@ The container deliberately does not terminate TLS. For remote access:
 2. terminate TLS at a maintained reverse proxy or gateway;
 3. preserve the original `Authorization` header;
 4. do not log request headers or MCP bodies;
-5. restrict request body size and idle duration appropriately for MCP;
-6. use the external hostname in `MONZO_MCP_HTTP_ALLOWED_HOSTS`;
-7. list only trusted browser origins in
+5. retain the application's request-body and concurrency bounds;
+6. enforce per-client rates, connection counts, body size, and idle duration;
+7. use the external hostname in `MONZO_MCP_HTTP_ALLOWED_HOSTS`;
+8. list only trusted browser origins in
    `MONZO_MCP_HTTP_ALLOWED_ORIGINS`; and
-8. disable public access to `/mcp` unless an authenticated client genuinely
+9. disable public access to `/mcp` unless an authenticated client genuinely
    needs it.
 
 The application disables proxy-header trust. If ingress needs client address

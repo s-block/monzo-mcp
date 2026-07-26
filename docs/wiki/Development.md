@@ -6,6 +6,7 @@
 - [uv](https://docs.astral.sh/uv/)
 - Docker for container checks
 - GNU Make or a compatible `make`
+- Node.js only for the optional `make docs-check`
 
 ## Setup
 
@@ -22,7 +23,6 @@ smoke tests.
 ## Repository layout
 
 ```text
-src/monzo_mcp/client/    Async Monzo client, OAuth, models, and transport
 src/monzo_mcp/mcp/       Settings, providers, server, models, and tools
 src/monzo_mcp/credentials.py
                          Encrypted local credential persistence
@@ -32,6 +32,9 @@ src/monzo_mcp/cli.py     Human OAuth and server entrypoint
 tests/                   Mirrored unit, lifecycle, protocol, and Docker tests
 docs/wiki/               Canonical documentation and Wiki pages
 ```
+
+The published `aiomonzo` dependency owns the async Monzo client, provider
+models, OAuth contracts, transport, and client-level tests.
 
 Keep entrypoints thin and put behavior in the owning package.
 
@@ -43,6 +46,9 @@ make format
 make format-check
 make lint
 make type-check
+make lock-check
+make secret-scan
+make docs-check
 make test
 make test-cov
 make build
@@ -58,6 +64,8 @@ make docker-check
 - Ruff formatting verification;
 - Ruff linting, including security rules;
 - strict mypy over source and tests;
+- public-PyPI-only lockfile validation;
+- reviewed-baseline secret detection;
 - the complete pytest suite; and
 - source and wheel builds.
 
@@ -130,9 +138,9 @@ a public issue when possible.
 
 ## Release pipeline
 
-CI covers supported Python versions, dependency review, dependency audit,
-CodeQL, tests, builds, container scans, multi-platform image publication, SBOM
-generation, build provenance, and artifact attestation.
+CI covers supported Python versions, secret detection, dependency review,
+dependency audit, CodeQL, tests, builds, container scans, multi-platform image
+publication, SBOM generation, build provenance, and artifact attestation.
 
 Successful builds from `main` publish amd64 and arm64 images to:
 
