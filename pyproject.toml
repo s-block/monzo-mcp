@@ -22,7 +22,7 @@ classifiers = [
 ]
 dependencies = [
     "aiomonzo>=0.1.0,<0.2",
-    "cryptography>=49,<50",
+    "cryptography>=50.0.0,<51",
     "httpx>=0.28.1,<1",
     "mcp>=1.28.1,<2",
     "pydantic>=2.12,<3",
