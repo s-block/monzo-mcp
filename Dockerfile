@@ -1,6 +1,6 @@
 FROM ghcr.io/astral-sh/uv:0.11.32@sha256:df4cae8f3a96d175e2e5f992e597550000edbe78fdc2594d5cd8de1a217f504c AS uv
 
-FROM python:3.13.14-alpine3.23@sha256:9fdbf2e3e82628351513560b121e2ee6ce31cac212be9e070c5a5e2769fb5e76 AS builder
+FROM python:3.14.7-alpine3.23@sha256:6b8f06d04d5305c1d1288435388df9165ab41e681fae6439d6349d8053cc3f83 AS builder
 
 COPY --from=uv /uv /usr/local/bin/uv
 WORKDIR /app
@@ -15,7 +15,7 @@ COPY src/ ./src/
 
 RUN uv sync --frozen --no-dev --no-editable
 
-FROM python:3.13.14-alpine3.23@sha256:9fdbf2e3e82628351513560b121e2ee6ce31cac212be9e070c5a5e2769fb5e76 AS runtime
+FROM python:3.14.7-alpine3.23@sha256:6b8f06d04d5305c1d1288435388df9165ab41e681fae6439d6349d8053cc3f83 AS runtime
 
 LABEL org.opencontainers.image.source="https://github.com/s-block/monzo-mcp" \
       org.opencontainers.image.licenses="MIT" \
