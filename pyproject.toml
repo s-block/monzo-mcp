@@ -43,7 +43,7 @@ monzo-mcp = "monzo_mcp.cli:main"
 
 [dependency-groups]
 dev = [
-    "coverage>=7.10",
+    "coverage>=7.15.4",
     "detect-secrets>=1.5,<2",
     "mypy>=1.18",
     "pre-commit>=4.6.1",
