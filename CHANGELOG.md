@@ -31,6 +31,9 @@
 
 ### Changed
 
+- Updated the Python 3.13 Alpine image and vulnerable locked dependencies, and
+  required MCP SDK 1.30.0 or newer for its transport and authentication fixes.
+- Removed package installers and their bundled wheels from the runtime image.
 - Read-only operation uses stateless JSON responses; enabling elicitation-backed
   write tools selects stateful Streamable HTTP.
 - Transaction lists default to a 30-day, 30-entry window, return compact list

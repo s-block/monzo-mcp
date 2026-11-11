@@ -1,6 +1,6 @@
 FROM ghcr.io/astral-sh/uv:0.12.3@sha256:2d890623d310b57771ce840f0da5eed5fc6d657da05ffaa45d82797b53fa3abc AS uv
 
-FROM python:3.13.14-alpine3.23@sha256:9fdbf2e3e82628351513560b121e2ee6ce31cac212be9e070c5a5e2769fb5e76 AS builder
+FROM python:3.13.18-alpine3.24@sha256:1e1f6334529d1fb26a2ef619d7cffb30a7c7d7cc1cc7338ebee283a58d1aeaca AS builder
 
 COPY --from=uv /uv /usr/local/bin/uv
 WORKDIR /app
@@ -15,13 +15,16 @@ COPY src/ ./src/
 
 RUN uv sync --frozen --no-dev --no-editable
 
-FROM python:3.13.14-alpine3.23@sha256:9fdbf2e3e82628351513560b121e2ee6ce31cac212be9e070c5a5e2769fb5e76 AS runtime
+FROM python:3.13.18-alpine3.24@sha256:1e1f6334529d1fb26a2ef619d7cffb30a7c7d7cc1cc7338ebee283a58d1aeaca AS runtime
 
 LABEL org.opencontainers.image.source="https://github.com/s-block/monzo-mcp" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="0.1.0"
 
-RUN mkdir -p /run/secrets \
+# Application dependencies are installed; omit installers and bundled wheels.
+RUN python -m pip uninstall --yes pip \
+    && python -c "import ensurepip, shutil; shutil.rmtree(ensurepip.__path__[0])" \
+    && mkdir -p /run/secrets \
     && chown 10001:10001 /run/secrets
 
 WORKDIR /app
